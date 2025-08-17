@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmação de Convite - Supabase</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .status {
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        
+        .loading {
+            background: #f0f9ff;
+            color: #0369a1;
+            border: 1px solid #bae6fd;
+        }
+        
+        .success {
+            background: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        
+        .info {
+            background: #fefce8;
+            color: #a16207;
+            border: 1px solid #fde68a;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0369a1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .details {
+            background: #f8fafc;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            text-align: left;
+            color: #64748b;
+        }
+        
+        .button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+            transition: background 0.2s;
+        }
+        
+        .button:hover {
+            background: #5a67d8;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            color: #64748b;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🎉</div>
+        <h1>Confirmação de Convite</h1>
+        
+        <div id="status" class="status loading">
+            <div class="spinner"></div>
+            Processando confirmação...
+        </div>
+        
+        <div id="details" class="details" style="display: none;"></div>
+        
+        <div class="footer">
+            <p>Sistema de Autenticação Supabase</p>
+            <p>Powered by Supabase Auth</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const { createClient } = supabase;
+        
+        // Configuração do Supabase (use sua chave anon)
+        const supabaseClient = createClient(
+            'https://kxcryhzeglcfuveybovm.supabase.co',
+            'SUA_ANON_KEY_AQUI' // Substitua pela sua chave anon
+        );
+        
+        // Elementos DOM
+        const statusEl = document.getElementById('status');
+        const detailsEl = document.getElementById('details');
+        
+        // Função para mostrar status
+        function mostrarStatus(tipo, mensagem, detalhes = null) {
+            statusEl.className = `status ${tipo}`;
+            statusEl.innerHTML = mensagem;
+            
+            if (detalhes) {
+                detailsEl.style.display = 'block';
+                detailsEl.innerHTML = detalhes;
+            }
+        }
+        
+        // Função para processar confirmação
+        async function processarConfirmacao() {
+            try {
+                // Obter parâmetros da URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const token = urlParams.get('token');
+                const type = urlParams.get('type');
+                const access_token = urlParams.get('access_token');
+                const refresh_token = urlParams.get('refresh_token');
+                
+                console.log('Parâmetros da URL:', {
+                    token,
+                    type,
+                    access_token: access_token ? 'presente' : 'ausente',
+                    refresh_token: refresh_token ? 'presente' : 'ausente'
+                });
+                
+                // Mostrar detalhes técnicos
+                const detalhes = `
+Parâmetros recebidos:
+• Token: ${token || 'não encontrado'}
+• Type: ${type || 'não encontrado'}
+• Access Token: ${access_token ? 'presente' : 'ausente'}
+• Refresh Token: ${refresh_token ? 'presente' : 'ausente'}
+• URL completa: ${window.location.href}
+                `;
+                
+                // Verificar se temos os tokens necessários
+                if (access_token && refresh_token) {
+                    // Método 1: Usar tokens diretamente
+                    const { data, error } = await supabaseClient.auth.setSession({
+                        access_token,
+                        refresh_token
+                    });
+                    
+                    if (error) {
+                        mostrarStatus('error', 
+                            `❌ Erro ao definir sessão: ${error.message}`, 
+                            detalhes
+                        );
+                    } else {
+                        mostrarStatus('success', 
+                            `✅ Convite confirmado com sucesso!<br>
+                             👤 Usuário: ${data.user?.email}<br>
+                             🎉 Agora você pode fazer login.`,
+                            detalhes
+                        );
+                    }
+                } else if (token && type) {
+                    // Método 2: Usar token de verificação
+                    const { data, error } = await supabaseClient.auth.verifyOtp({
+                        token_hash: token,
+                        type: type
+                    });
+                    
+                    if (error) {
+                        mostrarStatus('error', 
+                            `❌ Erro na verificação: ${error.message}`, 
+                            detalhes
+                        );
+                    } else {
+                        mostrarStatus('success', 
+                            `✅ Convite confirmado com sucesso!<br>
+                             👤 Usuário: ${data.user?.email}<br>
+                             🎉 Agora você pode fazer login.`,
+                            detalhes
+                        );
+                    }
+                } else {
+                    // Sem parâmetros válidos
+                    mostrarStatus('error', 
+                        '❌ Link de confirmação inválido',
+                        detalhes + `\n\n🔧 Possíveis problemas:
+• Link expirado
+• URL malformada
+• Configuração incorreta no Supabase`
+                    );
+                }
+                
+            } catch (err) {
+                console.error('Erro inesperado:', err);
+                mostrarStatus('error', 
+                    `💥 Erro inesperado: ${err.message}`,
+                    `Stack trace: ${err.stack}`
+                );
+            }
+        }
+        
+        // Função para verificar configuração
+        function verificarConfiguracao() {
+            const anonKey = 'SUA_ANON_KEY_AQUI';
+            
+            if (anonKey === 'SUA_ANON_KEY_AQUI') {
+                mostrarStatus('info', 
+                    '⚠️ Configuração necessária',
+                    `Para funcionar corretamente, você precisa:
+
+1. Substituir 'SUA_ANON_KEY_AQUI' pela sua chave anon do Supabase
+2. Encontre em: Dashboard → Settings → API → anon public
+3. Atualize o arquivo auth-callback.html
+
+🔗 Link do Dashboard:
+https://app.supabase.com/project/kxcryhzeglcfuveybovm/settings/api`
+                );
+                return false;
+            }
+            return true;
+        }
+        
+        // Executar quando a página carregar
+        window.addEventListener('load', () => {
+            console.log('🚀 Página de callback carregada');
+            console.log('URL atual:', window.location.href);
+            
+            // Verificar configuração primeiro
+            if (verificarConfiguracao()) {
+                // Processar confirmação
+                processarConfirmacao();
+            }
+        });
+        
+        // Log de debug
+        console.log('🔧 Debug Info:');
+        console.log('Supabase URL:', 'https://kxcryhzeglcfuveybovm.supabase.co');
+        console.log('Current URL:', window.location.href);
+        console.log('URL Params:', new URLSearchParams(window.location.search));
+    </script>
+</body>
+</html>
