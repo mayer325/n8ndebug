@@ -153,7 +153,7 @@
         // Configuração do Supabase (use sua chave anon)
         const supabaseClient = createClient(
             'https://kxcryhzeglcfuveybovm.supabase.co',
-            'SUA_ANON_KEY_AQUI' // Substitua pela sua chave anon
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4Y3J5aHplZ2xjZnV2ZXlicHZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NDUxMzYsImV4cCI6MjA3MTAyMTEzNn0.xZZuhVZiR-xWkA-m6fOS9BoN94TLNwFqMoOT7gVj17A' // Substitua pela sua chave anon
         );
         
         // Elementos DOM
@@ -261,9 +261,9 @@ Parâmetros recebidos:
         
         // Função para verificar configuração
         function verificarConfiguracao() {
-            const anonKey = 'SUA_ANON_KEY_AQUI';
+            const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4Y3J5aHplZ2xjZnV2ZXlicHZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NDUxMzYsImV4cCI6MjA3MTAyMTEzNn0.xZZuhVZiR-xWkA-m6fOS9BoN94TLNwFqMoOT7gVj17A';
             
-            if (anonKey === 'SUA_ANON_KEY_AQUI') {
+            if (anonKey === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4Y3J5aHplZ2xjZnV2ZXlicHZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NDUxMzYsImV4cCI6MjA3MTAyMTEzNn0.xZZuhVZiR-xWkA-m6fOS9BoN94TLNwFqMoOT7gVj17A') {
                 mostrarStatus('info', 
                     '⚠️ Configuração necessária',
                     `Para funcionar corretamente, você precisa:
