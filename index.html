@@ -17,71 +17,7 @@
             flex-direction: column;
         }
 
-        /* Header Styling */
-        .header {
-            position: fixed;
-            width: 100%;
-            background-color: rgba(26, 10, 44, 0.9);
-            padding: 15px 0;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .header-content {
-            width: 90%;
-            max-width: 1200px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-        }
-
-        .header-left img {
-            height: 38px;
-            width: 38px;
-            border-radius: 8px;
-            background: #fff1;
-        }
-
-        .header-left span {
-            font-size: 1.35em;
-            font-weight: 700;
-            letter-spacing: -1px;
-        }
-
-        .header nav a {
-            color: #fff;
-            text-decoration: none;
-            margin-left: 30px;
-            font-size: 1.1em;
-            padding: 5px 0;
-            position: relative;
-        }
-
-        .header nav a:hover::after {
-            width: 100%;
-            left: 0;
-        }
-
-        .header nav a::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 2px;
-            background: #ff5e00;
-            bottom: -5px;
-            left: 50%;
-            transition: width 0.3s ease-in-out, left 0.3s ease-in-out;
-        }
+        /* Header removido conforme solicitado */
 
         /* Main Content */
         .main-content {
@@ -89,7 +25,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 100px 20px 40px;
+            padding: 40px 20px;
             background: linear-gradient(180deg, #1a0a2c 0%, #4a2a6b 60%, #1a0a2c 100%);
         }
 
@@ -271,23 +207,12 @@
     </style>
 </head>
 <body>
-    <header class="header">
-        <div class="header-content">
-            <div class="header-left" onclick="window.location.href='index.html'">
-                <img src="https://supabase.engenheiroia.com.br/storage/v1/object/sign/n8ndebuger/logo%20preta%20128x128.png?token=eyJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJuOG5kZWJ1Z2VyL2xvZ28gcHJldGEgMTI4eDEyOC5wbmciLCJpYXQiOjE3NTI4NTU2MDEsImV4cCI6MTc4NDM5MTYwMX0.oP14kRbCGephir7ubHb0MJYeoXN1e20nn02Yny0j6GY" alt="logo do Engenheiro Debugger" />
-                <span><span style="color: #fff;">Engenheiro</span> <span style="color: #ff914d;">Debugger ™</span></span>
-            </div>
-            <nav>
-                <a href="https://n8n.engenheiroia.com.br/webhook/privacy-police" target="_blank" rel="noopener noreferrer">política privacidade</a>
-                <a href="https://n8n.io/" target="_blank" rel="noopener noreferrer">n8n</a>
-            </nav>
-        </div>
-    </header>
+    <!-- Header removido conforme solicitado -->
 
     <main class="main-content">
         <div class="reset-container">
-            <h1>Redefinir Senha</h1>
-            <p class="subtitle">Digite sua nova senha abaixo</p>
+            <h1>Atualizar Dados</h1>
+            <p class="subtitle">Digite seu email e nova senha</p>
 
             <div id="messageContainer"></div>
 
@@ -297,6 +222,11 @@
             </div>
 
             <form id="resetPasswordForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="Digite seu email" required>
+                </div>
+
                 <div class="form-group">
                     <label for="newPassword">Nova Senha</label>
                     <input type="password" id="newPassword" name="newPassword" placeholder="Digite sua nova senha" required>
@@ -311,12 +241,7 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="confirmPassword">Confirmar Nova Senha</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirme sua nova senha" required>
-                </div>
-
-                <button type="submit" class="btn btn-primary" id="submitBtn">Alterar Senha</button>
+                <button type="submit" class="btn btn-primary" id="submitBtn">Atualizar Dados</button>
             </form>
 
             <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">Voltar ao Início</button>
@@ -345,24 +270,9 @@
             }
 
             checkUrlParams() {
-                const urlParams = new URLSearchParams(window.location.search);
-                const accessToken = urlParams.get('access_token');
-                const refreshToken = urlParams.get('refresh_token');
-                const type = urlParams.get('type');
-
-                if (type === 'recovery' && accessToken) {
-                    console.log('Token de recuperação detectado na URL');
-                    // Armazenar tokens temporariamente para uso na alteração de senha
-                    sessionStorage.setItem('recovery_access_token', accessToken);
-                    if (refreshToken) {
-                        sessionStorage.setItem('recovery_refresh_token', refreshToken);
-                    }
-                    
-                    this.showMessage('Link de recuperação válido. Digite sua nova senha abaixo.', 'success');
-                } else {
-                    this.showMessage('Link de recuperação inválido ou expirado. Solicite um novo link.', 'error');
-                    this.submitBtn.disabled = true;
-                }
+                // Removida a verificação de tokens de recuperação
+                // Agora é uma operação simples de update user
+                this.showMessage('Digite seu email e nova senha para atualizar seus dados.', 'success');
             }
 
             validatePassword(password) {
@@ -391,62 +301,41 @@
             async handleSubmit(e) {
                 e.preventDefault();
                 
+                const email = document.getElementById('email').value;
                 const newPassword = document.getElementById('newPassword').value;
-                const confirmPassword = document.getElementById('confirmPassword').value;
 
                 // Validações
+                if (!email) {
+                    this.showMessage('Por favor, digite seu email.', 'error');
+                    return;
+                }
+
                 if (!this.validatePassword(newPassword)) {
                     this.showMessage('A senha não atende aos requisitos mínimos.', 'error');
-                    return;
-                }
-
-                if (newPassword !== confirmPassword) {
-                    this.showMessage('As senhas não coincidem.', 'error');
-                    return;
-                }
-
-                const accessToken = sessionStorage.getItem('recovery_access_token');
-                if (!accessToken) {
-                    this.showMessage('Token de recuperação não encontrado. Solicite um novo link.', 'error');
                     return;
                 }
 
                 this.showLoading(true);
 
                 try {
-                    // Criar uma sessão temporária com o token de recuperação
-                    const tempSession = {
-                        access_token: accessToken,
-                        refresh_token: sessionStorage.getItem('recovery_refresh_token') || '',
-                        user: { email: 'temp@temp.com' } // Dados temporários
-                    };
-
-                    // Salvar sessão temporariamente
-                    await window.supabaseAuth.saveSessionToStorage(tempSession);
-                    window.supabaseAuth.currentUser = tempSession.user;
-
-                    // Tentar alterar a senha
-                    const result = await window.supabaseAuth.updatePassword(newPassword);
+                    // Operação de update user com email e nova senha
+                    const result = await window.supabaseAuth.updateUser({
+                        email: email,
+                        password: newPassword
+                    });
 
                     if (result.success) {
-                        this.showMessage('Senha alterada com sucesso! Você será redirecionado para o login.', 'success');
-                        
-                        // Limpar tokens de recuperação
-                        sessionStorage.removeItem('recovery_access_token');
-                        sessionStorage.removeItem('recovery_refresh_token');
-                        
-                        // Limpar sessão temporária
-                        await window.supabaseAuth.clearSessionFromStorage();
+                        this.showMessage('Dados atualizados com sucesso! Você será redirecionado para o login.', 'success');
                         
                         // Redirecionar após 3 segundos
                         setTimeout(() => {
                             window.location.href = 'popup.html';
                         }, 3000);
                     } else {
-                        this.showMessage(`Erro ao alterar senha: ${result.error}`, 'error');
+                        this.showMessage(`Erro ao atualizar dados: ${result.error}`, 'error');
                     }
                 } catch (error) {
-                    console.error('Erro ao alterar senha:', error);
+                    console.error('Erro ao atualizar dados:', error);
                     this.showMessage(`Erro inesperado: ${error.message}`, 'error');
                 } finally {
                     this.showLoading(false);
