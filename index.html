@@ -343,14 +343,21 @@
                 this.showLoading(true);
 
                 try {
-                    // Primeiro, definir a sessão com o token de acesso
-                    await window.supabaseAuth.setSession({
+                    // Primeiro, definir a sessão temporária com os tokens de recuperação
+                    const sessionResult = await window.supabaseAuth.setSession({
                         access_token: this.accessToken,
                         refresh_token: this.refreshToken
                     });
 
-                    // Agora atualizar apenas a senha
-                    const result = await window.supabaseAuth.updatePassword(newPassword);
+                    if (!sessionResult.success) {
+                        this.showMessage(`Erro ao validar token: ${sessionResult.error}`, 'error');
+                        return;
+                    }
+
+                    // Agora usar updateUser para alterar a senha (seguindo a documentação do Supabase)
+                    const result = await window.supabaseAuth.updateUser({
+                        password: newPassword
+                    });
 
                     if (result.success) {
                         this.showMessage('Senha redefinida com sucesso! Você será redirecionado para o login.', 'success');
