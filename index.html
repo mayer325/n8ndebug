@@ -211,8 +211,8 @@
 
     <main class="main-content">
         <div class="reset-container">
-            <h1>Atualizar Dados</h1>
-            <p class="subtitle">Digite seu email e nova senha</p>
+            <h1>Redefinir Senha</h1>
+            <p class="subtitle">Digite sua nova senha</p>
 
             <div id="messageContainer"></div>
 
@@ -222,11 +222,6 @@
             </div>
 
             <form id="resetPasswordForm">
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" placeholder="Digite seu email" required>
-                </div>
-
                 <div class="form-group">
                     <label for="newPassword">Nova Senha</label>
                     <input type="password" id="newPassword" name="newPassword" placeholder="Digite sua nova senha" required>
@@ -241,7 +236,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary" id="submitBtn">Atualizar Dados</button>
+                <button type="submit" class="btn btn-primary" id="submitBtn">Redefinir Senha</button>
             </form>
 
             <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">Voltar ao Início</button>
@@ -270,9 +265,33 @@
             }
 
             checkUrlParams() {
-                // Removida a verificação de tokens de recuperação
-                // Agora é uma operação simples de update user
-                this.showMessage('Digite seu email e nova senha para atualizar seus dados.', 'success');
+                const urlParams = new URLSearchParams(window.location.hash.substring(1));
+                const accessToken = urlParams.get('access_token');
+                const refreshToken = urlParams.get('refresh_token');
+                const tokenType = urlParams.get('token_type');
+                
+                if (accessToken && refreshToken) {
+                    // Token válido encontrado
+                    this.accessToken = accessToken;
+                    this.refreshToken = refreshToken;
+                    this.showMessage('Link de redefinição válido. Digite sua nova senha.', 'success');
+                } else {
+                    // Verificar se há erro na URL
+                    const error = urlParams.get('error');
+                    const errorDescription = urlParams.get('error_description');
+                    
+                    if (error) {
+                        let errorMessage = 'Link de redefinição inválido ou expirado.';
+                        if (error === 'access_denied' && errorDescription) {
+                            errorMessage = 'Link de redefinição expirado. Solicite um novo link.';
+                        }
+                        this.showMessage(errorMessage, 'error');
+                        this.submitBtn.disabled = true;
+                    } else {
+                        this.showMessage('Link de redefinição não encontrado. Acesse através do email recebido.', 'error');
+                        this.submitBtn.disabled = true;
+                    }
+                }
             }
 
             validatePassword(password) {
@@ -301,41 +320,53 @@
             async handleSubmit(e) {
                 e.preventDefault();
                 
-                const email = document.getElementById('email').value;
                 const newPassword = document.getElementById('newPassword').value;
 
                 // Validações
-                if (!email) {
-                    this.showMessage('Por favor, digite seu email.', 'error');
+                if (!this.validatePassword(newPassword)) {
+                    this.showMessage('A senha não atende aos requisitos mínimos.', 'error');
                     return;
                 }
 
-                if (!this.validatePassword(newPassword)) {
-                    this.showMessage('A senha não atende aos requisitos mínimos.', 'error');
+                // Verificar se temos o token de acesso
+                if (!this.accessToken) {
+                    this.showMessage('Token de redefinição não encontrado. Acesse através do link do email.', 'error');
+                    return;
+                }
+
+                // Verificar se supabaseAuth está disponível
+                if (!window.supabaseAuth) {
+                    this.showMessage('Sistema de autenticação não carregado. Recarregue a página.', 'error');
                     return;
                 }
 
                 this.showLoading(true);
 
                 try {
-                    // Operação de update user com email e nova senha
-                    const result = await window.supabaseAuth.updateUser({
-                        email: email,
-                        password: newPassword
+                    // Primeiro, definir a sessão com o token de acesso
+                    await window.supabaseAuth.setSession({
+                        access_token: this.accessToken,
+                        refresh_token: this.refreshToken
                     });
 
+                    // Agora atualizar apenas a senha
+                    const result = await window.supabaseAuth.updatePassword(newPassword);
+
                     if (result.success) {
-                        this.showMessage('Dados atualizados com sucesso! Você será redirecionado para o login.', 'success');
+                        this.showMessage('Senha redefinida com sucesso! Você será redirecionado para o login.', 'success');
+                        
+                        // Limpar a sessão temporária
+                        await window.supabaseAuth.signOut();
                         
                         // Redirecionar após 3 segundos
                         setTimeout(() => {
                             window.location.href = 'popup.html';
                         }, 3000);
                     } else {
-                        this.showMessage(`Erro ao atualizar dados: ${result.error}`, 'error');
+                        this.showMessage(`Erro ao redefinir senha: ${result.error}`, 'error');
                     }
                 } catch (error) {
-                    console.error('Erro ao atualizar dados:', error);
+                    console.error('Erro ao redefinir senha:', error);
                     this.showMessage(`Erro inesperado: ${error.message}`, 'error');
                 } finally {
                     this.showLoading(false);
@@ -343,9 +374,29 @@
             }
         }
 
-        // Inicializar quando a página carregar
-        document.addEventListener('DOMContentLoaded', () => {
-            new PasswordReset();
+        // Função para aguardar o carregamento do supabaseAuth
+        function waitForSupabaseAuth() {
+            return new Promise((resolve) => {
+                if (window.supabaseAuth && typeof window.supabaseAuth.updatePassword === 'function') {
+                    resolve();
+                } else {
+                    setTimeout(() => {
+                        waitForSupabaseAuth().then(resolve);
+                    }, 100);
+                }
+            });
+        }
+
+        // Inicializar quando a página carregar e supabaseAuth estiver disponível
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await waitForSupabaseAuth();
+                console.log('SupabaseAuth carregado com sucesso');
+                new PasswordReset();
+            } catch (error) {
+                console.error('Erro ao carregar SupabaseAuth:', error);
+                document.getElementById('messageContainer').innerHTML = '<div class="message error">Erro ao carregar sistema de autenticação. Recarregue a página.</div>';
+            }
         });
     </script>
 </body>
