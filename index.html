@@ -64,9 +64,16 @@
             color: #e0e0e0;
         }
 
+        .password-input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
         .form-group input {
             width: 100%;
             padding: 15px;
+            padding-right: 50px;
             border: 2px solid #5a4b70;
             border-radius: 8px;
             background-color: rgba(26, 10, 44, 0.8);
@@ -83,6 +90,28 @@
 
         .form-group input::placeholder {
             color: #999;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #ff914d;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 0;
+            z-index: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .password-toggle:hover {
+            opacity: 0.7;
+        }
+
+        .eye-icon {
+            display: inline-block;
+            user-select: none;
         }
 
         .password-requirements {
@@ -224,7 +253,12 @@
             <form id="resetPasswordForm">
                 <div class="form-group">
                     <label for="newPassword">Nova Senha</label>
-                    <input type="password" id="newPassword" name="newPassword" placeholder="Digite sua nova senha" required>
+                    <div class="password-input-container">
+                        <input type="password" id="newPassword" name="newPassword" placeholder="Digite sua nova senha" required>
+                        <button type="button" class="password-toggle" id="togglePassword1">
+                            <span class="eye-icon">👁️</span>
+                        </button>
+                    </div>
                     <div class="password-requirements">
                         <strong>Requisitos da senha:</strong>
                         <ul>
@@ -233,6 +267,16 @@
                             <li>Pelo menos uma letra minúscula</li>
                             <li>Pelo menos um número</li>
                         </ul>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirmar Nova Senha</label>
+                    <div class="password-input-container">
+                        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Digite novamente sua nova senha" required>
+                        <button type="button" class="password-toggle" id="togglePassword2">
+                            <span class="eye-icon">👁️</span>
+                        </button>
                     </div>
                 </div>
 
@@ -245,8 +289,15 @@
         </div>
     </main>
 
-    <script src="supabase-client.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Configuração do Supabase
+        const SUPABASE_URL = 'https://kxcryhzeglcfuveybpvm.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4Y3J5aHplZ2xjZnV2ZXlicHZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU0NDUxMzYsImV4cCI6MjA3MTAyMTEzNn0.xZZuhVZiR-xWkA-m6fOS9BoN94TLNwFqMoOT7gVj17A';
+        
+        // Inicializar cliente Supabase
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         class PasswordReset {
             constructor() {
                 this.form = document.getElementById('resetPasswordForm');
@@ -257,40 +308,52 @@
                 this.init();
             }
 
-            init() {
+            async init() {
                 this.form.addEventListener('submit', this.handleSubmit.bind(this));
                 
-                // Verificar se há parâmetros de URL para token de recuperação
-                this.checkUrlParams();
+                // Configurar botões de mostrar/ocultar senha
+                this.setupPasswordToggle();
+                
+                // Verificar se o usuário está autenticado (o Supabase já processou os tokens automaticamente)
+                await this.checkAuthSession();
             }
 
-            checkUrlParams() {
-                const urlParams = new URLSearchParams(window.location.hash.substring(1));
-                const accessToken = urlParams.get('access_token');
-                const refreshToken = urlParams.get('refresh_token');
-                const tokenType = urlParams.get('token_type');
-                
-                if (accessToken && refreshToken) {
-                    // Token válido encontrado
-                    this.accessToken = accessToken;
-                    this.refreshToken = refreshToken;
-                    this.showMessage('Link de redefinição válido. Digite sua nova senha.', 'success');
-                } else {
-                    // Verificar se há erro na URL
-                    const error = urlParams.get('error');
-                    const errorDescription = urlParams.get('error_description');
+            async checkAuthSession() {
+                try {
+                    // O Supabase SDK já processou os tokens da URL automaticamente
+                    const { data: { session }, error } = await supabase.auth.getSession();
                     
                     if (error) {
-                        let errorMessage = 'Link de redefinição inválido ou expirado.';
-                        if (error === 'access_denied' && errorDescription) {
-                            errorMessage = 'Link de redefinição expirado. Solicite um novo link.';
-                        }
-                        this.showMessage(errorMessage, 'error');
+                        console.error('Erro ao verificar sessão:', error);
+                        this.showMessage('Link de redefinição inválido ou expirado.', 'error');
                         this.submitBtn.disabled = true;
+                        return;
+                    }
+
+                    if (session && session.user) {
+                        // Usuário está autenticado temporariamente para redefinir senha
+                        this.showMessage('Link de redefinição válido. Digite sua nova senha.', 'success');
+                        this.submitBtn.disabled = false;
                     } else {
-                        this.showMessage('Link de redefinição não encontrado. Acesse através do email recebido.', 'error');
+                        // Verificar se há erro na URL
+                        const urlParams = new URLSearchParams(window.location.hash.substring(1));
+                        const urlError = urlParams.get('error');
+                        
+                        if (urlError) {
+                            let errorMessage = 'Link de redefinição inválido ou expirado.';
+                            if (urlError === 'access_denied') {
+                                errorMessage = 'Link de redefinição expirado. Solicite um novo link.';
+                            }
+                            this.showMessage(errorMessage, 'error');
+                        } else {
+                            this.showMessage('Link de redefinição não encontrado. Acesse através do email recebido.', 'error');
+                        }
                         this.submitBtn.disabled = true;
                     }
+                } catch (error) {
+                    console.error('Erro ao verificar autenticação:', error);
+                    this.showMessage('Erro ao verificar link de redefinição.', 'error');
+                    this.submitBtn.disabled = true;
                 }
             }
 
@@ -301,6 +364,29 @@
                 const hasNumbers = /\d/.test(password);
 
                 return minLength && hasUpperCase && hasLowerCase && hasNumbers;
+            }
+
+            validatePasswordMatch(password, confirmPassword) {
+                return password === confirmPassword;
+            }
+
+            setupPasswordToggle() {
+                const togglePassword1 = document.getElementById('togglePassword1');
+                const togglePassword2 = document.getElementById('togglePassword2');
+                const newPasswordInput = document.getElementById('newPassword');
+                const confirmPasswordInput = document.getElementById('confirmPassword');
+
+                togglePassword1.addEventListener('click', () => {
+                    const type = newPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    newPasswordInput.setAttribute('type', type);
+                    togglePassword1.querySelector('.eye-icon').textContent = type === 'password' ? '👁️' : '🙈';
+                });
+
+                togglePassword2.addEventListener('click', () => {
+                    const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    confirmPasswordInput.setAttribute('type', type);
+                    togglePassword2.querySelector('.eye-icon').textContent = type === 'password' ? '👁️' : '🙈';
+                });
             }
 
             showMessage(message, type) {
@@ -321,6 +407,7 @@
                 e.preventDefault();
                 
                 const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
 
                 // Validações
                 if (!this.validatePassword(newPassword)) {
@@ -328,52 +415,43 @@
                     return;
                 }
 
-                // Verificar se temos o token de acesso
-                if (!this.accessToken) {
-                    this.showMessage('Token de redefinição não encontrado. Acesse através do link do email.', 'error');
-                    return;
-                }
-
-                // Verificar se supabaseAuth está disponível
-                if (!window.supabaseAuth) {
-                    this.showMessage('Sistema de autenticação não carregado. Recarregue a página.', 'error');
+                if (!this.validatePasswordMatch(newPassword, confirmPassword)) {
+                    this.showMessage('As senhas não coincidem. Digite novamente.', 'error');
                     return;
                 }
 
                 this.showLoading(true);
 
                 try {
-                    // Primeiro, definir a sessão temporária com os tokens de recuperação
-                    const sessionResult = await window.supabaseAuth.setSession({
-                        access_token: this.accessToken,
-                        refresh_token: this.refreshToken
-                    });
-
-                    if (!sessionResult.success) {
-                        this.showMessage(`Erro ao validar token: ${sessionResult.error}`, 'error');
+                    // Verificar se o usuário ainda está autenticado
+                    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                    
+                    if (sessionError || !session) {
+                        this.showMessage('Sessão expirada. Acesse novamente através do link do email.', 'error');
                         return;
                     }
 
-                    // Agora usar updateUser para alterar a senha (seguindo a documentação do Supabase)
-                    const result = await window.supabaseAuth.updateUser({
+                    // Usar o método nativo do Supabase para atualizar a senha
+                    const { error } = await supabase.auth.updateUser({
                         password: newPassword
                     });
 
-                    if (result.success) {
+                    if (error) {
+                        console.error('Erro ao redefinir senha:', error);
+                        this.showMessage(`Erro ao redefinir senha: ${error.message}`, 'error');
+                    } else {
                         this.showMessage('Senha redefinida com sucesso! Você será redirecionado para o login.', 'success');
                         
-                        // Limpar a sessão temporária
-                        await window.supabaseAuth.signOut();
+                        // Fazer logout para forçar novo login com a nova senha
+                        await supabase.auth.signOut();
                         
                         // Redirecionar após 3 segundos
                         setTimeout(() => {
                             window.location.href = 'popup.html';
                         }, 3000);
-                    } else {
-                        this.showMessage(`Erro ao redefinir senha: ${result.error}`, 'error');
                     }
                 } catch (error) {
-                    console.error('Erro ao redefinir senha:', error);
+                    console.error('Erro inesperado ao redefinir senha:', error);
                     this.showMessage(`Erro inesperado: ${error.message}`, 'error');
                 } finally {
                     this.showLoading(false);
@@ -381,29 +459,9 @@
             }
         }
 
-        // Função para aguardar o carregamento do supabaseAuth
-        function waitForSupabaseAuth() {
-            return new Promise((resolve) => {
-                if (window.supabaseAuth && typeof window.supabaseAuth.updatePassword === 'function') {
-                    resolve();
-                } else {
-                    setTimeout(() => {
-                        waitForSupabaseAuth().then(resolve);
-                    }, 100);
-                }
-            });
-        }
-
-        // Inicializar quando a página carregar e supabaseAuth estiver disponível
-        document.addEventListener('DOMContentLoaded', async () => {
-            try {
-                await waitForSupabaseAuth();
-                console.log('SupabaseAuth carregado com sucesso');
-                new PasswordReset();
-            } catch (error) {
-                console.error('Erro ao carregar SupabaseAuth:', error);
-                document.getElementById('messageContainer').innerHTML = '<div class="message error">Erro ao carregar sistema de autenticação. Recarregue a página.</div>';
-            }
+        // Inicializar quando a página carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            new PasswordReset();
         });
     </script>
 </body>
