@@ -320,57 +320,24 @@
 
             async checkAuthSession() {
                 try {
-                    // Extrair parâmetros da URL (query parameters)
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const token = urlParams.get('token');
-                    const type = urlParams.get('type');
+                    // O Supabase SDK já processou os tokens da URL automaticamente
+                    const { data: { session }, error } = await supabase.auth.getSession();
                     
-                    console.log('URL params:', { token: token ? 'presente' : 'ausente', type });
-                    
-                    // Se há token e type na URL, processar a recuperação
-                    if (token && type === 'recovery') {
-                        try {
-                            // Verificar a sessão do Supabase para confirmar se o token foi processado
-                            const { data: { session }, error } = await supabase.auth.getSession();
-                            
-                            if (session && session.user) {
-                                // Token válido e usuário autenticado temporariamente
-                                this.showMessage('Link de redefinição válido. Digite sua nova senha.', 'success');
-                                this.submitBtn.disabled = false;
-                                return;
-                            }
-                            
-                            // Se não há sessão, tentar verificar o token manualmente
-                            // O Supabase pode processar automaticamente, mas vamos verificar
-                            const { data, error: verifyError } = await supabase.auth.verifyOtp({
-                                token_hash: token,
-                                type: 'recovery'
-                            });
-                            
-                            if (verifyError) {
-                                console.error('Erro ao verificar token:', verifyError);
-                                this.showMessage('Link de redefinição inválido ou expirado.', 'error');
-                                this.submitBtn.disabled = true;
-                                return;
-                            }
-                            
-                            if (data.session) {
-                                this.showMessage('Link de redefinição válido. Digite sua nova senha.', 'success');
-                                this.submitBtn.disabled = false;
-                            } else {
-                                this.showMessage('Erro ao processar link de redefinição.', 'error');
-                                this.submitBtn.disabled = true;
-                            }
-                            
-                        } catch (tokenError) {
-                            console.error('Erro ao processar token:', tokenError);
-                            this.showMessage('Link de redefinição inválido ou expirado.', 'error');
-                            this.submitBtn.disabled = true;
-                        }
+                    if (error) {
+                        console.error('Erro ao verificar sessão:', error);
+                        this.showMessage('Link de redefinição inválido ou expirado.', 'error');
+                        this.submitBtn.disabled = true;
+                        return;
+                    }
+
+                    if (session && session.user) {
+                        // Usuário está autenticado temporariamente para redefinir senha
+                        this.showMessage('Link de redefinição válido. Digite sua nova senha.', 'success');
+                        this.submitBtn.disabled = false;
                     } else {
-                        // Verificar se há erro na URL (pode vir como hash também)
-                        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-                        const urlError = hashParams.get('error') || urlParams.get('error');
+                        // Verificar se há erro na URL
+                        const urlParams = new URLSearchParams(window.location.hash.substring(1));
+                        const urlError = urlParams.get('error');
                         
                         if (urlError) {
                             let errorMessage = 'Link de redefinição inválido ou expirado.';
