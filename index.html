@@ -293,7 +293,7 @@
     <script>
         // Configuração do Supabase
         const SUPABASE_URL = 'https://supabase.engenheirodeia.com.br';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzE1MDUwODAwLAogICJleHAiOiAxODcyODE3MjAwCn0.mKAadd7YK_CVHSYJWKPi7tJ6-Zmie9HApB2H6idBYiU';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzE1MDUwODAwLAogICJleHAiOiAxODcyODE3MjAwCn0.2IzHoogHxgWt_8Gl8VF1hizdSeV12jUGj22cr0VBQHs';
         
         // Inicializar cliente Supabase
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -320,23 +320,62 @@
 
             async checkAuthSession() {
                 try {
-                    // O Supabase SDK já processou os tokens da URL automaticamente
-                    const { data: { session }, error } = await supabase.auth.getSession();
+                    // Verificar se há parâmetros de recuperação na URL
+                    const urlParams = new URLSearchParams(window.location.hash.substring(1));
+                    const accessToken = urlParams.get('access_token');
+                    const refreshToken = urlParams.get('refresh_token');
+                    const type = urlParams.get('type');
                     
-                    if (error) {
-                        console.error('Erro ao verificar sessão:', error);
-                        this.showMessage('Link de redefinição inválido ou expirado.', 'error');
-                        this.submitBtn.disabled = true;
-                        return;
-                    }
+                    console.log('URL params:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
+                    
+                    // Se há tokens na URL, aguardar o Supabase processar
+                    if (accessToken && refreshToken && type === 'recovery') {
+                        console.log('Tokens de recuperação encontrados, aguardando processamento...');
+                        
+                        // Aguardar um pouco para o Supabase processar os tokens
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
+                        // Verificar sessão após processamento
+                        const { data: { session }, error } = await supabase.auth.getSession();
+                        
+                        console.log('Sessão após processamento:', { session: !!session, error });
+                        
+                        if (error) {
+                            console.error('Erro ao verificar sessão:', error);
+                            this.showMessage('Link de redefinição inválido ou expirado.', 'error');
+                            this.submitBtn.disabled = true;
+                            return;
+                        }
 
-                    if (session && session.user) {
-                        // Usuário está autenticado temporariamente para redefinir senha
-                        this.showMessage('Link de redefinição válido. Digite sua nova senha.', 'success');
-                        this.submitBtn.disabled = false;
+                        if (session && session.user) {
+                            // Usuário está autenticado temporariamente para redefinir senha
+                            this.showMessage('Link de redefinição válido. Digite sua nova senha.', 'success');
+                            this.submitBtn.disabled = false;
+                        } else {
+                            // Tentar definir a sessão manualmente se o Supabase não processou automaticamente
+                            try {
+                                const { data, error: setSessionError } = await supabase.auth.setSession({
+                                    access_token: accessToken,
+                                    refresh_token: refreshToken
+                                });
+                                
+                                if (setSessionError) {
+                                    console.error('Erro ao definir sessão:', setSessionError);
+                                    this.showMessage('Link de redefinição inválido ou expirado.', 'error');
+                                    this.submitBtn.disabled = true;
+                                } else {
+                                    console.log('Sessão definida manualmente com sucesso');
+                                    this.showMessage('Link de redefinição válido. Digite sua nova senha.', 'success');
+                                    this.submitBtn.disabled = false;
+                                }
+                            } catch (setSessionError) {
+                                console.error('Erro ao definir sessão manualmente:', setSessionError);
+                                this.showMessage('Link de redefinição inválido ou expirado.', 'error');
+                                this.submitBtn.disabled = true;
+                            }
+                        }
                     } else {
-                        // Verificar se há erro na URL
-                        const urlParams = new URLSearchParams(window.location.hash.substring(1));
+                        // Não há tokens de recuperação na URL
                         const urlError = urlParams.get('error');
                         
                         if (urlError) {
